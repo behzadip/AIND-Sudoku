@@ -1,5 +1,21 @@
 assignments = []
 
+rows = 'ABCDEFGHI'
+cols = '123456789'
+
+def cross(A, B):
+    "Cross product of elements in A and elements in B."
+    return [s+t for s in A for t in B]
+
+boxes = cross(rows, cols)
+
+row_units = [cross(r, cols) for r in rows]
+column_units = [cross(rows, c) for c in cols]
+square_units = [cross(rs, cs) for rs in ('ABC','DEF','GHI') for cs in ('123','456','789')]
+unitlist = row_units + column_units + square_units
+units = dict((s, [u for u in unitlist if s in u]) for s in boxes)
+peers = dict((s, set(sum(units[s],[]))-set([s])) for s in boxes)
+
 def assign_value(values, box, value):
     """
     Please use this function to update your values dictionary!
@@ -22,10 +38,6 @@ def naked_twins(values):
     # Find all instances of naked twins
     # Eliminate the naked twins as possibilities for their peers
 
-def cross(A, B):
-    "Cross product of elements in A and elements in B."
-    pass
-
 def grid_values(grid):
     """
     Convert grid into a dict of {square: char} with '123456789' for empties.
@@ -36,7 +48,12 @@ def grid_values(grid):
             Keys: The boxes, e.g., 'A1'
             Values: The value in each box, e.g., '8'. If the box has no value, then the value will be '123456789'.
     """
-    pass
+    assert len(grid) == 81
+    out = dict(zip(boxes, grid))
+    for item in out.keys():
+        if out[item] == '.':
+            out[item] = '123456789'
+    return out
 
 def display(values):
     """
@@ -44,19 +61,73 @@ def display(values):
     Args:
         values(dict): The sudoku in dictionary form
     """
-    pass
+    width = 1+max(len(values[s]) for s in boxes)
+    line = '+'.join(['-'*(width*3)]*3)
+    for r in rows:
+        print(''.join(values[r+c].center(width)+('|' if c in '36' else '')
+                      for c in cols))
+        if r in 'CF': print(line)
+    return
 
 def eliminate(values):
-    pass
+    for key in values.keys():
+        if len(values[key]) == 1:
+            for peer in peers[key]:
+                if len(values[peer]) != 1:
+                    values[peer] = values[peer].replace(values[key],'')
+    return values
 
 def only_choice(values):
-    pass
+    for unit in unitlist:
+        for num in '123456789':
+            count = [key for key in unit if num in values[key]]
+            if len(count) == 1:
+                values[count[0]] = num
+    return values
 
 def reduce_puzzle(values):
-    pass
+    stalled = False
+    while not stalled:
+        # Check how many boxes have a determined value
+        solved_values_before = len([box for box in values.keys() if len(values[box]) == 1])
+
+        # Use the Eliminate Strategy
+        values = eliminate(values)
+        # Use the Only Choice Strategy
+        values = only_choice(values)
+        # Check how many boxes have a determined value, to compare
+        solved_values_after = len([box for box in values.keys() if len(values[box]) == 1])
+        # If no new values were added, stop the loop.
+        stalled = solved_values_before == solved_values_after
+        # Sanity check, return False if there is a box with zero available values:
+        if len([box for box in values.keys() if len(values[box]) == 0]):
+            return False
+    return values
 
 def search(values):
-    pass
+    "Using depth-first search and propagation, create a search tree and solve the sudoku."
+    # First, reduce the puzzle using the previous function
+    values = reduce_puzzle(values)
+    # Choose one of the unfilled squares with the fewest possibilities
+    if not values:
+        return False
+    key = expand_key(values)
+    # Now use recursion to solve each one of the resulting sudokus, and if one returns a value (not False), return that answer!
+    if not key:
+        return values
+        
+    for val in values[key]:
+        temp = values.copy()
+        temp[key] = val
+        solution = search(temp)
+        if solution:
+            return solution
+
+def expand_key(values):
+    lengths = [(len(values[k]), k) for k in boxes if len(values[k]) > 1]
+    if lengths:
+        return min(lengths)[1]
+    return False
 
 def solve(grid):
     """
