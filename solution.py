@@ -1,3 +1,6 @@
+grid = '2.............62....1....7...6..8...3...9...7...6..4...4....8....52.............3'
+grid2 = '4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......'
+
 assignments = []
 
 rows = 'ABCDEFGHI'
@@ -34,9 +37,23 @@ def naked_twins(values):
     Returns:
         the values dictionary with the naked twins eliminated from peers.
     """
-
+    for unit in unitlist:
+        candidates = [(values[key],key) for key in unit if len(values[key])==2]
+        for i in range(0,len(candidates)-1):
+            for j in range(i+1,len(candidates)):
+                if candidates[i][0] == candidates[j][0]: 
+                    vals = candidates[i][0]
+                    key1 = candidates[i][1]
+                    key2 = candidates[j][1]
+                    for key in unit:
+                        if key != key1 and key != key2:
+                            values = assign_value(values, key, values[key].replace(vals, '')) 
+            
+        
+    return 
     # Find all instances of naked twins
     # Eliminate the naked twins as possibilities for their peers
+naked_twins(a)
 
 def grid_values(grid):
     """
@@ -74,7 +91,8 @@ def eliminate(values):
         if len(values[key]) == 1:
             for peer in peers[key]:
                 if len(values[peer]) != 1:
-                    values[peer] = values[peer].replace(values[key],'')
+                    #values[peer] = values[peer].replace(values[key],'')
+                    values = assign_value(values, peer, values[peer].replace(values[key],''))
     return values
 
 def only_choice(values):
@@ -82,7 +100,8 @@ def only_choice(values):
         for num in '123456789':
             count = [key for key in unit if num in values[key]]
             if len(count) == 1:
-                values[count[0]] = num
+                #values[count[0]] = num
+                values = assign_value(values, count[0], num)
     return values
 
 def reduce_puzzle(values):
@@ -90,7 +109,6 @@ def reduce_puzzle(values):
     while not stalled:
         # Check how many boxes have a determined value
         solved_values_before = len([box for box in values.keys() if len(values[box]) == 1])
-
         # Use the Eliminate Strategy
         values = eliminate(values)
         # Use the Only Choice Strategy
