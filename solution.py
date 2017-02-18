@@ -70,7 +70,7 @@ def hidden_twins(values):
     """
     # Find all instances of hidden twins
     # Going through each individual unit
-    for unit in column_units:
+    for unit in unitlist:
         # Goes through all possible pair of digits 
         for digit1,digit2 in itertools.combinations('123456789', 2): 
             # Record boxes that have both digits as their possibile values

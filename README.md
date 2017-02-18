@@ -3,11 +3,11 @@
 
 # Question 1 (Naked Twins)
 Q: How do we use constraint propagation to solve the naked twins problem?  
-A: *Student should provide answer here*
+A: Naked twins strategy addresses a situation where among members of a unit (row,column,square,diagonal), there are two boxes with identical two available options. So if one box is digit 1, the other has to be digit 2 and vise versa, and this eliminates these two digits as possible values for their peers. In naked_twins function first a set of candidates which has only two possible values are identified. Next, from the list it identifies duplicate values, which corresponds to two boxes having the same available digits. Then, for each duplicate values, it goes through the peers and remove these digits from their set of possible numbers. 
 
 # Question 2 (Diagonal Sudoku)
 Q: How do we use constraint propagation to solve the diagonal sudoku problem?  
-A: *Student should provide answer here*
+A: Two diagonal units and their corresponding members can be added to the set of all units of the game. Thereafter, all subsequent constraints and strategies will be applied to the diagonal units as well, ensuring we have no duplicate values. These new unit memebers are defined inside diag_units list in solutions.py.
 
 ### Install
 
