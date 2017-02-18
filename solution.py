@@ -1,3 +1,4 @@
+import itertools
 
 def cross(A, B):
         "Cross product of elements in A and elements in B."
@@ -58,6 +59,31 @@ def naked_twins(values):
                     # Remove two options from their possibilities
                     values = assign_value(values, key, values[key].replace(switch[0], ''))
                     values = assign_value(values, key, values[key].replace(switch[1], ''))
+    return values
+
+def hidden_twins(values):
+    """Eliminate values using the hidden twins strategy.
+    Args:
+        values(dict): a dictionary of the form {'box_name': '123456789', ...}
+    Returns:
+        the values dictionary with the hidden twins identified.
+    """
+    # Find all instances of hidden twins
+    # Going through each individual unit
+    for unit in column_units:
+        # Goes through all possible pair of digits 
+        for digit1,digit2 in itertools.combinations('123456789', 2): 
+            # Record boxes that have both digits as their possibile values
+            switches = [key for key in unit if digit1 in values[key] and digit2 in values[key]]
+            # In case there are only two boxes, a possible hidden twin has been found
+            if len(switches)==2:
+                # Checks whether either of the two digits is among possible values for peers of them
+                sanity = [not(digit1 in values[key] or digit2 in values[key]) for key in unit if key not in switches]
+                if all(sanity):
+                    # In case these digits were not found in any of their peers a Hidden Twins is found
+                    # Assignining the pair of digit as the their only available values
+                    values = assign_value(values, switches[0], digit1+digit2)
+                    values = assign_value(values, switches[1], digit1+digit2)
     return values
 
 def grid_values(grid):
@@ -151,6 +177,8 @@ def reduce_puzzle(values):
         values = eliminate(values)
         # Use the Only Choice Strategy
         values = only_choice(values)
+        # Use Hidden Twins strategy
+        values = hidden_twins(values)
         # Use Naked Twins strategy
         values = naked_twins(values)
         # Check how many boxes have a determined value, to compare
