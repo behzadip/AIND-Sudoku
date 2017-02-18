@@ -61,6 +61,10 @@ def naked_twins(values):
                     values = assign_value(values, key, values[key].replace(switch[1], ''))
     return values
 
+''' OPTIONAL STRATEGIES
+    Below is hidden_twins function which implements the hidden twins strategy based on following link
+    http://www.sudokudragon.com/tutorialhiddentwins.htm
+'''
 def hidden_twins(values):
     """Eliminate values using the hidden twins strategy.
     Args:
@@ -99,11 +103,11 @@ def grid_values(grid):
     # Sanity check if they are 81 boxes
     assert len(grid) == 81
     # Assign values to boxes in order replacing blank values with all possible numbers
-    out = dict(zip(boxes, grid))
-    for item in out.keys():
-        if out[item] == '.':
-            out[item] = '123456789'
-    return out
+    values = dict(zip(boxes, grid))
+    for box in boxes:
+        if values[box] == '.':
+            values[box] = '123456789'
+    return values
 
 def display(values):
     """
@@ -136,7 +140,7 @@ def eliminate(values):
         if len(values[key]) == 1:
             # Go through all its peers and remove this value from their possible values
             for peer in peers[key]:
-                if len(values[peer]) != 1:
+                if len(values[peer]) > 1 and values[key] in values[peer]:
                     values = assign_value(values, peer, values[peer].replace(values[key],''))
     return values
 
@@ -198,10 +202,15 @@ def search(values):
     if not values:
         return False
     # Choose one of the unfilled squares with the fewest possibilities
-    key = expand_key(values)
+    # List number of all possible values greater than 1 for each box
+    lengths = [(len(values[k]), k) for k in boxes if len(values[k]) > 1]
+    # Return one box with minimum number of possibilities if exists to expand
+    if lengths:
+        key = min(lengths)[1]
     # Found the solution if no expansion key found
-    if not key:
+    else:
         return values # Solved
+
     # Now use recursion to solve each one of the resulting sudokus, and if one returns a value (not False), return that answer!        
     for val in values[key]:
         # Copy a new Sudoku game by assigning one of the possible values to the expansion key
@@ -211,19 +220,6 @@ def search(values):
         # Return solution if it exists
         if solution:
             return solution
-
-def expand_key(values):
-    """Goes through all boxes and select one box to expand that has the fewest number of
-    possibile values greater than 1, otherwise return False
-    Input: Sudoku in dictionary form.
-    Output: A box key to be expanded, False if none exists.
-    """
-    # List number of all possible values greater than 1 for each box 
-    lengths = [(len(values[k]), k) for k in boxes if len(values[k]) > 1]
-    # Return one box key with minimum number of possibilities if exists otherwise return False
-    if lengths:
-        return min(lengths)[1]
-    return False
 
 def solve(grid):
     """
