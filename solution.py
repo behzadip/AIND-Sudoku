@@ -1,23 +1,22 @@
-grid = '2.............62....1....7...6..8...3...9...7...6..4...4....8....52.............3'
-grid2 = '4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......'
-
-assignments = []
-
-rows = 'ABCDEFGHI'
-cols = '123456789'
+#grid = '2.............62....1....7...6..8...3...9...7...6..4...4....8....52.............3'
+#grid2 = '4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......'
 
 def cross(A, B):
-    "Cross product of elements in A and elements in B."
-    return [s+t for s in A for t in B]
-
+        "Cross product of elements in A and elements in B."
+        return [s+t for s in A for t in B]
+    
+assignments = []
+rows = 'ABCDEFGHI'
+cols = '123456789'
 boxes = cross(rows, cols)
-
 row_units = [cross(r, cols) for r in rows]
 column_units = [cross(rows, c) for c in cols]
 square_units = [cross(rs, cs) for rs in ('ABC','DEF','GHI') for cs in ('123','456','789')]
-unitlist = row_units + column_units + square_units
+diag_units = [['A1', 'B2', 'C3', 'D4', 'E5', 'F6', 'G7', 'H8', 'I9'],['A9', 'B8', 'C7', 'D6', 'E5', 'F4', 'G3', 'H2', 'I1']]
+unitlist = row_units + column_units + square_units + diag_units
 units = dict((s, [u for u in unitlist if s in u]) for s in boxes)
 peers = dict((s, set(sum(units[s],[]))-set([s])) for s in boxes)
+
 
 def assign_value(values, box, value):
     """
@@ -38,22 +37,17 @@ def naked_twins(values):
         the values dictionary with the naked twins eliminated from peers.
     """
     for unit in unitlist:
-        candidates = [(values[key],key) for key in unit if len(values[key])==2]
-        for i in range(0,len(candidates)-1):
-            for j in range(i+1,len(candidates)):
-                if candidates[i][0] == candidates[j][0]: 
-                    vals = candidates[i][0]
-                    key1 = candidates[i][1]
-                    key2 = candidates[j][1]
-                    for key in unit:
-                        if key != key1 and key != key2:
-                            values = assign_value(values, key, values[key].replace(vals, '')) 
-            
-        
-    return 
+        #candidates = [(values[key],key) for key in unit if len(values[key])==2]
+        candidates = [values[key] for key in unit if len(values[key])==2]
+        switches = set([can for can in candidates if candidates.count(can)>1])
+        for switch in switches:
+            for key in unit:
+                if values[key] != switch:
+                    values = assign_value(values, key, values[key].replace(switch[0], ''))
+                    values = assign_value(values, key, values[key].replace(switch[1], ''))
+    return values
     # Find all instances of naked twins
     # Eliminate the naked twins as possibilities for their peers
-naked_twins(a)
 
 def grid_values(grid):
     """
@@ -113,6 +107,8 @@ def reduce_puzzle(values):
         values = eliminate(values)
         # Use the Only Choice Strategy
         values = only_choice(values)
+        #
+        values = naked_twins(values)
         # Check how many boxes have a determined value, to compare
         solved_values_after = len([box for box in values.keys() if len(values[box]) == 1])
         # If no new values were added, stop the loop.
@@ -156,7 +152,9 @@ def solve(grid):
     Returns:
         The dictionary representation of the final sudoku grid. False if no solution exists.
     """
-
+    values = grid_values(grid)    
+    return search(values)
+    
 if __name__ == '__main__':
     diag_sudoku_grid = '2.............62....1....7...6..8...3...9...7...6..4...4....8....52.............3'
     display(solve(diag_sudoku_grid))
