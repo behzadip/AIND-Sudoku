@@ -1,20 +1,26 @@
-#grid = '2.............62....1....7...6..8...3...9...7...6..4...4....8....52.............3'
-#grid2 = '4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......'
 
 def cross(A, B):
         "Cross product of elements in A and elements in B."
         return [s+t for s in A for t in B]
-    
+
+# Initialize assignments and Sudoku board boxes
 assignments = []
 rows = 'ABCDEFGHI'
 cols = '123456789'
 boxes = cross(rows, cols)
+# List of row units
 row_units = [cross(r, cols) for r in rows]
+# List of column units
 column_units = [cross(rows, c) for c in cols]
+# List of 9 3x3 squares within main board
 square_units = [cross(rs, cs) for rs in ('ABC','DEF','GHI') for cs in ('123','456','789')]
+# List of two diagonal units encoded manually
 diag_units = [['A1', 'B2', 'C3', 'D4', 'E5', 'F6', 'G7', 'H8', 'I9'],['A9', 'B8', 'C7', 'D6', 'E5', 'F4', 'G3', 'H2', 'I1']]
+# Create list of all units
 unitlist = row_units + column_units + square_units + diag_units
+# Dictionary of a list of units each box is a member of
 units = dict((s, [u for u in unitlist if s in u]) for s in boxes)
+# Remove repetition from above dictionary to include unique co-unit members for each box
 peers = dict((s, set(sum(units[s],[]))-set([s])) for s in boxes)
 
 
@@ -36,18 +42,23 @@ def naked_twins(values):
     Returns:
         the values dictionary with the naked twins eliminated from peers.
     """
+    # Find all instances of naked twins
+    # Eliminate the naked twins as possibilities for their peers
+    # Going through each individual unit
     for unit in unitlist:
-        #candidates = [(values[key],key) for key in unit if len(values[key])==2]
+        # Narrow down candidates to be further investigated (boxes with two possible values)
         candidates = [values[key] for key in unit if len(values[key])==2]
+        # Check if they are more than one box with identical two possible values
         switches = set([can for can in candidates if candidates.count(can)>1])
+        # For each pair remove these two values from its co-unit members possibile values
         for switch in switches:
             for key in unit:
+                # Check not to remove the values from naked twin boxes themselves 
                 if values[key] != switch:
+                    # Remove two options from their possibilities
                     values = assign_value(values, key, values[key].replace(switch[0], ''))
                     values = assign_value(values, key, values[key].replace(switch[1], ''))
     return values
-    # Find all instances of naked twins
-    # Eliminate the naked twins as possibilities for their peers
 
 def grid_values(grid):
     """
@@ -59,7 +70,9 @@ def grid_values(grid):
             Keys: The boxes, e.g., 'A1'
             Values: The value in each box, e.g., '8'. If the box has no value, then the value will be '123456789'.
     """
+    # Sanity check if they are 81 boxes
     assert len(grid) == 81
+    # Assign values to boxes in order replacing blank values with all possible numbers
     out = dict(zip(boxes, grid))
     for item in out.keys():
         if out[item] == '.':
@@ -81,24 +94,55 @@ def display(values):
     return
 
 def eliminate(values):
-    for key in values.keys():
+    """Eliminate values from peers of each box with a single value.
+
+    Go through all the boxes, and whenever there is a box with a single value,
+    eliminate this value from the set of values of all its peers.
+
+    Args:
+        values: Sudoku in dictionary form.
+    Returns:
+        Resulting Sudoku in dictionary form after eliminating values.
+    """
+    # Go through all boxes
+    for key in boxes:
+        # If it has only one possible value
         if len(values[key]) == 1:
+            # Go through all its peers and remove this value from their possible values
             for peer in peers[key]:
                 if len(values[peer]) != 1:
-                    #values[peer] = values[peer].replace(values[key],'')
                     values = assign_value(values, peer, values[peer].replace(values[key],''))
     return values
 
 def only_choice(values):
+    """Finalize all values that are the only choice for a unit.
+
+    Go through all the units, and whenever there is a unit with a value
+    that only fits in one box, assign the value to this box.
+
+    Input: Sudoku in dictionary form.
+    Output: Resulting Sudoku in dictionary form after filling in only choices.
+    """
+    # Go through each unit
     for unit in unitlist:
+        # For each digit make a list of all the boxes which has the digit as their possible values
         for num in '123456789':
             count = [key for key in unit if num in values[key]]
+            # Assign the digit to a box if it is the only box in above list
             if len(count) == 1:
-                #values[count[0]] = num
                 values = assign_value(values, count[0], num)
     return values
 
 def reduce_puzzle(values):
+    """Reduce the possible values for applicable boxes.
+    Apply eliminate, only choice, and naked twins functions over and over again while
+    it's making progress. Stops when the board did not change after applying 
+    these three functions.
+
+    Input: Sudoku in dictionary form.
+    Output: Resulting Sudoku in dictionary form after reducing possible values. Return False
+    if there are boxes with no possible values.
+    """
     stalled = False
     while not stalled:
         # Check how many boxes have a determined value
@@ -107,7 +151,7 @@ def reduce_puzzle(values):
         values = eliminate(values)
         # Use the Only Choice Strategy
         values = only_choice(values)
-        #
+        # Use Naked Twins strategy
         values = naked_twins(values)
         # Check how many boxes have a determined value, to compare
         solved_values_after = len([box for box in values.keys() if len(values[box]) == 1])
@@ -122,23 +166,33 @@ def search(values):
     "Using depth-first search and propagation, create a search tree and solve the sudoku."
     # First, reduce the puzzle using the previous function
     values = reduce_puzzle(values)
-    # Choose one of the unfilled squares with the fewest possibilities
+    # Return False if reduce puzzle were unsuccessful
     if not values:
         return False
+    # Choose one of the unfilled squares with the fewest possibilities
     key = expand_key(values)
-    # Now use recursion to solve each one of the resulting sudokus, and if one returns a value (not False), return that answer!
+    # Found the solution if no expansion key found
     if not key:
-        return values
-        
+        return values # Solved
+    # Now use recursion to solve each one of the resulting sudokus, and if one returns a value (not False), return that answer!        
     for val in values[key]:
+        # Copy a new Sudoku game by assigning one of the possible values to the expansion key
         temp = values.copy()
         temp[key] = val
         solution = search(temp)
+        # Return solution if it exists
         if solution:
             return solution
 
 def expand_key(values):
+    """Goes through all boxes and select one box to expand that has the fewest number of
+    possibile values greater than 1, otherwise return False
+    Input: Sudoku in dictionary form.
+    Output: A box key to be expanded, False if none exists.
+    """
+    # List number of all possible values greater than 1 for each box 
     lengths = [(len(values[k]), k) for k in boxes if len(values[k]) > 1]
+    # Return one box key with minimum number of possibilities if exists otherwise return False
     if lengths:
         return min(lengths)[1]
     return False
